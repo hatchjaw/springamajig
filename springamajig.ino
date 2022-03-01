@@ -35,7 +35,7 @@ const float MAX_GRAIN_DENSITY = 7.5;
 const float DENSITY_FLIP_THRESHOLD = .85;
 // Debugging introduces delay, which slows down the grain speed change;
 // adjust for when not debugging.
-const float GRAIN_SPEED_DELTA = DEBUG_SENSORS || DEBUG_PARAMS ? .015 : .0015;
+const float GRAIN_SPEED_DELTA = DEBUG_SENSORS || DEBUG_PARAMS ? .015 : .001;
 const float MAX_GRAIN_SPEED = 2.;
 const float MIN_GRAIN_SPEED = .125;
 
@@ -93,7 +93,7 @@ void setup() {
   // filter out DC & extremely low frequencies
   filter1.frequency(30);
   // amplify mic signal to useful range
-  amp1.gain(.8);
+  amp1.gain(.9);
 
   // reverb
   reverb.damping(.2);
@@ -101,7 +101,7 @@ void setup() {
 
   // mix
   // direct
-  mixer.gain(0, .1);
+  mixer.gain(0, .15);
   // granular
   mixer.gain(1, 1.);
   // reverb
@@ -110,6 +110,7 @@ void setup() {
   // Final level boost/cut
   amp2.gain(1.25);
 
+  sg.setParamValue(GRAIN_SPEED, 1.);
   setParameters();
 
   //  Serial.println("Setup done.");
