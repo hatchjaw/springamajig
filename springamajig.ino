@@ -10,7 +10,8 @@
 #define WIRE Wire
 
 // Debug flags
-const bool DEBUG_DATA = false;
+const bool DEBUG_SENSORS = false;
+const bool DEBUG_SENSOR_DETAIL = false;
 const bool DEBUG_PARAMS = false;
 const bool PLOT = false;
 
@@ -26,12 +27,15 @@ const std::string GRAIN_REGULARITY = "Rhythm";
 const std::string FREEZE = "Freeze";
 
 // Various parameter constants
-const float FREEZE_THRESHOLD = .65;
+const float FREEZE_THRESHOLD = .625;
 const float MAX_GRAIN_SIZE = .5;
 const float MIN_GRAIN_SIZE = .005;
+const float MIN_GRAIN_DENSITY = .001;
 const float MAX_GRAIN_DENSITY = 7.5;
 const float DENSITY_FLIP_THRESHOLD = .85;
-const float GRAIN_SPEED_DELTA = .015;
+// Debugging introduces delay, which slows down the grain speed change;
+// adjust for when not debugging.
+const float GRAIN_SPEED_DELTA = DEBUG_SENSORS || DEBUG_PARAMS ? .015 : .0015;
 const float MAX_GRAIN_SPEED = 2.;
 const float MIN_GRAIN_SPEED = .125;
 
@@ -61,6 +65,7 @@ AudioControlSGTL5000     audioShield;     //xy=1025,48
 // Accelerometer
 LIS3DHTR<TwoWire> LIS; //IIC
 
+float rawFSR = 0;
 float fsr = 0;
 float flex = 0;
 float flexMin = 1000, flexMax = 0;
@@ -115,8 +120,8 @@ void loop() {
 
   setParameters();
 
-  if (DEBUG_DATA) {
-    debugData();
+  if (DEBUG_SENSORS) {
+    debugSensors();
   }
 
   if (DEBUG_PARAMS) {
@@ -137,9 +142,11 @@ void processSensorData() {
   flex = analog2.getValue();
 
   rawFlex = flex;
-  flex = (flex - 625.) / 225.;
+  flex = (flex - 625.) / 150.;
+  flex = clamp(flex, MIN_GRAIN_DENSITY, 1.);
 
-  fsr /= 375.;
+  rawFSR = fsr;
+  fsr = (fsr - 25.) / 350.;
   fsr = clamp(fsr, 0., 1.);
 }
 
@@ -173,19 +180,24 @@ void setParameters() {
   mixer.gain(2, abs(y) * .5);
 }
 
-void debugData() {
+void debugSensors() {
   if(rawFlex > flexMax) flexMax = rawFlex;
   if(rawFlex < flexMin) flexMin = rawFlex;
   
   if (PLOT) Serial.print(' '); else Serial.print("fsr: ");
   Serial.print(fsr);
-  if (PLOT) Serial.print(' '); else Serial.print(", rawflex: ");
-  Serial.print(rawFlex);
-  if (PLOT) Serial.print(' '); else Serial.print(" (min: ");
-  Serial.print(flexMin);
-  if (PLOT) Serial.print(' '); else Serial.print("/ max: ");
-  Serial.print(flexMax);
-  if (PLOT) Serial.print(' '); else Serial.print("), flex: ");
+  if (DEBUG_SENSOR_DETAIL) {
+    if (PLOT) Serial.print(' '); else Serial.print(", rawFSR: ");
+    Serial.print(rawFSR);
+    if (PLOT) Serial.print(' '); else Serial.print(", rawflex: ");
+    Serial.print(rawFlex);
+    if (PLOT) Serial.print(' '); else Serial.print(" (min: ");
+    Serial.print(flexMin);
+    if (PLOT) Serial.print(' '); else Serial.print("/ max: ");
+    Serial.print(flexMax);
+    Serial.print(")"); 
+  }
+  if (PLOT) Serial.print(' '); else Serial.print(", flex: ");
   Serial.print(flex);
   if (PLOT) Serial.print(' '); else Serial.print(", x: ");
   Serial.print(x);
